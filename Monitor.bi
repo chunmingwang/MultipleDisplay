@@ -25,6 +25,28 @@ Const QDC_VIRTUAL_MODE_AWARE= &h00000010
 Const QDC_INCLUDE_HMD = &h00000020
 Const QDC_VIRTUAL_REFRESH_RATE_AWARE= &h00000040
 
+Using My.Sys.Forms
+
+Type Monitor
+	Dim mtrCount As Integer = -1
+	Dim mtrMI(Any) As MONITORINFO
+	Dim mtrHMtr(Any) As HMONITOR
+	Dim mtrHDC(Any) As HDC
+	Dim mtrRECT(Any) As tagRECT
+	
+	Declare Constructor
+	Declare Destructor
+	Declare Static Function MonitorEnumProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
+	Declare Sub ChangeDisplaySettings(DiviceName As LPCWSTR, ByVal ModeNum As Integer, dwFlags As DWORD, dwFlags2 As DWORD, txt As TextBox Ptr)
+	Declare Sub EnumDisplayDevice(dwFlags As DWORD, cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
+	Declare Sub EnumDisplayMode(DiviceName As LPCWSTR, dwFlags As DWORD, lst As ListControl Ptr, txt As TextBox Ptr)
+	Declare Sub GetDisplayMode(DiviceName As LPCWSTR, ByVal FlagIndex As Integer, ByVal Index As Integer, lst As ListControl Ptr, txt As TextBox Ptr)
+	Declare Sub InitEnumDisplayMonitors(txt As TextBox Ptr)
+	Declare Sub QueryDisplayConfigs(cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
+	Declare Sub Release()
+	Declare Sub SetDisplayConfigs(cob As ComboBoxEdit Ptr, txt As TextBox Ptr)
+End Type
+
 #ifndef __USE_MAKE__
 	#include once "Monitor.bas"
 #endif

@@ -4,8 +4,6 @@
 
 #include once "Monitor.bi"
 
-Using My.Sys.Forms
-
 Private Function EDSEdwFlags(Index As Integer) As DWORD
 	Select Case Index
 	Case 0
@@ -265,3 +263,263 @@ Private Function CDSErtnWstr(ByVal rtn As Long) ByRef As WString
 	End Select
 End Function
 
+Private Destructor Monitor
+	Release()
+End Destructor
+
+Private Constructor Monitor
+	
+End Constructor
+
+Private Sub Monitor.Release()
+	mtrCount = -1
+	Erase mtrMI
+	Erase mtrHMtr
+	Erase mtrHDC
+	Erase mtrRECT
+End Sub
+
+Private Sub Monitor.EnumDisplayDevice(dwFlags As DWORD, cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
+	lst->Clear
+	cob->Clear
+	
+	Dim iDevNum As DWORD = 0
+	Dim ddDisplay As DISPLAY_DEVICE
+	Dim dmDevMode As DEVMODE
+	'Dim dwFlags As DWORD = EDSEdwFlags(ComboBoxEdit4.ItemIndex)
+	txt->Clear
+	Do
+		memset (@ddDisplay, 0, SizeOf(ddDisplay))
+		ddDisplay.cb = SizeOf(ddDisplay)
+		memset (@dmDevMode, 0, SizeOf(dmDevMode))
+		dmDevMode.dmSize = SizeOf(dmDevMode)
+		
+		If EnumDisplayDevices(NULL, iDevNum, @ddDisplay, EDD_GET_DEVICE_INTERFACE_NAME) Then
+			txt->AddLine "EnumDisplayDevices " & iDevNum + 1 & " =========================================="
+			DD2WStr(ddDisplay, txt)
+			txt->AddLine ""
+			
+			If EnumDisplaySettingsEx(ddDisplay.DeviceName, ENUM_CURRENT_SETTINGS, @dmDevMode, dwFlags) Then
+				cob->AddItem ddDisplay.DeviceName
+				txt->AddLine "EnumDisplaySettingsEx " & ddDisplay.DeviceName & " --------------------------------------"
+				txt->AddLine "dmDevMode"
+				DM2WStr(dmDevMode, txt)
+				txt->AddLine "---------------------------------------"
+				txt->AddLine ""
+			End If
+			
+			iDevNum += 1
+		Else
+			Exit Do
+		End If
+	Loop While True
+End Sub
+
+Private Sub Monitor.SetDisplayConfigs(cob As ComboBoxEdit Ptr, txt As TextBox Ptr)
+	Dim flag As UINT32
+	Select Case cob->ItemIndex
+	Case 0
+		flag = SDC_TOPOLOGY_CLONE
+	Case 1
+		flag = SDC_TOPOLOGY_EXTEND
+	Case 2
+		flag = SDC_TOPOLOGY_INTERNAL
+	Case 3
+		flag = SDC_TOPOLOGY_EXTERNAL
+	End Select
+	flag = flag Or SDC_APPLY
+	
+	Dim rtn As Integer = SetDisplayConfig(0, NULL, 0, NULL, flag)
+	txt->Clear
+	txt->AddLine cob->Item(cob->ItemIndex)
+	txt->AddLine ML("Set Display Config") & " = " & rtn
+	txt->AddLine QDCrtn2WStr(rtn)
+End Sub
+
+Private Sub Monitor.QueryDisplayConfigs(cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
+	Dim rtn As Long
+	
+	Dim PathArraySize As UINT32 = 0
+	Dim ModeArraySize  As UINT32 = 0
+	Dim flags As UINT32
+	
+	Select Case cob->ItemIndex
+	Case 0
+		flags = QDC_ALL_PATHS
+	Case 1
+		flags = QDC_ONLY_ACTIVE_PATHS
+	Case Else
+		flags = QDC_DATABASE_CURRENT
+	End Select
+	
+	Dim i As Integer
+	For i = 0 To lst->ItemCount - 1
+		If lst->Selected(i) Then
+			Select Case i
+			Case 0
+				flags += QDC_VIRTUAL_MODE_AWARE
+			Case 1
+				flags += QDC_INCLUDE_HMD
+			Case 2
+				flags += QDC_VIRTUAL_REFRESH_RATE_AWARE
+			End Select
+		End If
+	Next
+	
+	rtn = GetDisplayConfigBufferSizes(flags, @PathArraySize, @ModeArraySize)
+	txt->Clear
+	txt->AddLine "GetDisplayConfigBufferSizes = " & rtn & ", " & flags
+	txt->AddLine "PathArraySize = " & PathArraySize
+	txt->AddLine "ModeArraySize = " & ModeArraySize
+	txt->AddLine QDCrtn2WStr(rtn)
+	
+	Dim currentTopologyId As DISPLAYCONFIG_TOPOLOGY_ID
+	Dim PathArray(PathArraySize-1) As DISPLAYCONFIG_PATH_INFO
+	Dim ModeArray(ModeArraySize-1) As DISPLAYCONFIG_MODE_INFO
+	
+	rtn = QueryDisplayConfig(flags, @PathArraySize, @PathArray(0), @ModeArraySize, @ModeArray(0) , @currentTopologyId)
+	txt->AddLine ""
+	txt->AddLine "QueryDisplayConfig = " & rtn
+	txt->AddLine QDCrtn2WStr(rtn)
+	
+	Dim tmp As WString Ptr
+	
+	txt->AddLine "PathArray()===================="
+	For i = 0 To PathArraySize-1
+		txt->AddLine "Index: " & i & " --------------------"
+		Path2WStr(PathArray(i), txt)
+		txt->AddLine *tmp
+	Next
+	txt->AddLine "ModeArray()===================="
+	For i = 0 To ModeArraySize-1
+		txt->AddLine "Index: " & i & " --------------------"
+		Mode2WStr(ModeArray(i), txt)
+		txt->AddLine *tmp
+	Next
+	Deallocate(tmp)
+End Sub
+
+Private Sub Monitor.EnumDisplayMode(DiviceName As LPCWSTR, dwFlags As DWORD, lst As ListControl Ptr, txt As TextBox Ptr)
+	lst->Clear
+	If DiviceName = NULL Then Exit Sub
+	
+	Dim dmDevMode() As DEVMODE
+	Dim dmDevModeCur As DEVMODE
+	Dim iModeCur As Integer = -1
+	Dim iModeNum As Integer = -1
+	Dim i As Long
+	Dim tmpi As String
+	Dim tmpc As String
+	
+	'Dim dwFlags As DWORD = EDSEdwFlags(FlagIndex)
+	
+	memset (@dmDevModeCur, 0, SizeOf(DEVMODE))
+	dmDevModeCur.dmSize = SizeOf(DEVMODE)
+	EnumDisplaySettingsEx(DiviceName, ENUM_CURRENT_SETTINGS, @dmDevModeCur, dwFlags)
+	
+	tmpc = DM2SimpleWStr(dmDevModeCur)
+	
+	Do
+		i = iModeNum + 1
+		ReDim Preserve dmDevMode(i)
+		memset (@dmDevMode(i), 0, SizeOf(DEVMODE))
+		dmDevMode(i).dmSize = SizeOf(DEVMODE)
+		
+		If EnumDisplaySettingsEx(DiviceName, i , @dmDevMode(i), dwFlags) Then
+			tmpi = DM2SimpleWStr(dmDevMode(i))
+			lst->AddItem i & " - " & tmpi
+			If tmpc = tmpi Then
+				iModeCur = i
+			End If
+			iModeNum = i
+		Else
+			Exit Do
+		End If
+	Loop While (True)
+	lst->ItemIndex = iModeCur
+	txt->Clear
+	txt->AddLine "DiviceName: " & *DiviceName
+	txt->AddLine ML("Total DEVMODE number") & ": " & iModeNum
+	txt->AddLine ML("Current DEVMODE number") & ": " & iModeCur
+	DM2WStr(dmDevModeCur, txt)
+End Sub
+
+Private Sub Monitor.GetDisplayMode(DiviceName As LPCWSTR, ByVal FlagIndex As Integer, ByVal Index As Integer, lst As ListControl Ptr, txt As TextBox Ptr)
+	If DiviceName = NULL Or FlagIndex < 0 Then Exit Sub
+	
+	Dim dmDevMode() As DEVMODE
+	Dim dmDevModeCur As DEVMODE
+	Dim iModeCur As Integer = -1
+	Dim iModeNum As Integer = -1
+	Dim i As Long
+	Dim tmpi As WString Ptr
+	Dim tmpc As WString Ptr
+	
+	Dim dwFlags As DWORD = EDSEdwFlags(FlagIndex)
+	
+	memset (@dmDevModeCur, 0, SizeOf(DEVMODE))
+	dmDevModeCur.dmSize = SizeOf(DEVMODE)
+	EnumDisplaySettingsEx(DiviceName, Index, @dmDevModeCur, dwFlags)
+	
+	txt->Clear
+	txt->AddLine "DiviceName: " & *DiviceName
+	txt->AddLine ML("Total DEVMODE number") & ": " & lst->ItemCount
+	txt->AddLine ML("Current DEVMODE") & ": " & lst->Item(Index)
+	txt->AddLine ML("Current DEVMODE number") & ": " & Index
+	DM2WStr(dmDevModeCur, txt)
+	Deallocate(tmpi)
+	Deallocate(tmpc)
+End Sub
+
+Private Sub Monitor.InitEnumDisplayMonitors(txt As TextBox Ptr)
+	Release()
+	
+	txt->Clear
+	txt->AddLine "EnumDisplayMonitors: " & EnumDisplayMonitors(NULL , NULL , @MonitorEnumProc, Cast(LPARAM, @This))
+	txt->AddLine "Monitor count: " & mtrCount + 1
+	Dim i As Integer
+	For i = 0 To mtrCount
+		txt->AddLine ""
+		txt->AddLine "Monitor " & i + 1 & " ================="
+		txt->AddLine "EnumDisplayMonitors---------"
+		txt->AddLine "hMtr =        " & mtrHMtr(i)
+		txt->AddLine "hDCMonitor =  " & mtrHDC(i)
+		txt->AddLine "####mrtRECT"
+		RECT2WStr(mtrRECT(i), txt, "    ")
+		txt->AddLine "GetMonitorInfo--------------"
+		txt->AddLine "####rcMonitor"
+		RECT2WStr(mtrMI(i).rcMonitor, txt, "    ")
+		txt->AddLine "####rcWork"
+		RECT2WStr(mtrMI(i).rcWork, txt, "    ")
+		txt->AddLine "dwFlags =     " & mtrMI(i).dwFlags & IIf(mtrMI(i).dwFlags = MONITORINFOF_PRIMARY, ", This is the primary display monitor.", ", This is not the primary display monitor.")
+	Next
+End Sub
+
+Private Sub Monitor.ChangeDisplaySettings(DiviceName As LPCWSTR, ByVal ModeNum As Integer, dwFlags As DWORD, dwFlags2 As DWORD, txt As TextBox Ptr)
+	Dim dmDevMode As DEVMODEW
+	memset(@dmDevMode, 0, SizeOf(dmDevMode))
+	dmDevMode.dmSize = SizeOf (dmDevMode)
+	
+	Dim brtn As WINBOOL = EnumDisplaySettingsEx(DiviceName, ModeNum, @dmDevMode, dwFlags)
+	Dim rtn As Long = ChangeDisplaySettingsEx(DiviceName, @dmDevMode, NULL, dwFlags2, NULL)
+	txt->Clear
+	txt->AddLine "EnumDisplaySettingsEx: " & brtn
+	txt->AddLine "ChangeDisplaySettingsEx: " & rtn
+	txt->AddLine CDSErtnWstr(rtn)
+End Sub
+
+Private Function Monitor.MonitorEnumProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
+	Dim a As Monitor Ptr = Cast(Monitor Ptr, dwData)
+	a->mtrCount += 1
+	
+	ReDim Preserve a->mtrHMtr(a->mtrCount)
+	ReDim Preserve a->mtrHDC(a->mtrCount)
+	ReDim Preserve a->mtrRECT(a->mtrCount)
+	ReDim Preserve a->mtrMI(a->mtrCount)
+	a->mtrHMtr(a->mtrCount) = hMtr
+	a->mtrHDC(a->mtrCount) = hDCMonitor
+	memcpy(VarPtr(a->mtrRECT(a->mtrCount)), lprcMonitor, SizeOf(tagRECT))
+	a->mtrMI(a->mtrCount).cbSize = SizeOf(MONITORINFO)
+	GetMonitorInfo(hMtr, @(a->mtrMI(a->mtrCount)))
+	Return True
+End Function
