@@ -23,6 +23,7 @@
 'GetMonitorInfo
 'https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfoa
 
+'C定义
 'typedef struct tagMONITORINFO {
 '  DWORD cbSize;
 '  Rect  rcMonitor;
@@ -30,10 +31,11 @@
 '  DWORD dwFlags;
 '}
 '
-'typedef struct tagMONITORINFOEXA : tagMONITORINFO {
-'  CHAR szDevice[CCHDEVICENAME];
-'}
-'
+'typedef struct tagMONITORINFOEXW : Public tagMONITORINFO {
+'  WCHAR szDevice[CCHDEVICENAME];
+'} MONITORINFOEXW,*LPMONITORINFOEXW;
+
+'转换成freebasic的定义
 'Type tagMONITORINFO
 '	cbSize As DWORD
 '	rcMonitor As Rect
@@ -74,12 +76,12 @@ Type Monitor
 	
 	Declare Constructor
 	Declare Destructor
-	Declare Static Function MonitorEnumProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
+	Declare Static Function EnumDisplayMonitorProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
 	Declare Sub ChangeDisplaySettings(DiviceName As LPCWSTR, ByVal ModeNum As Integer, dwFlags As DWORD, dwFlags2 As DWORD, txt As TextBox Ptr)
 	Declare Sub EnumDisplayDevice(dwFlags As DWORD, cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
 	Declare Sub EnumDisplayMode(DiviceName As LPCWSTR, dwFlags As DWORD, lst As ListControl Ptr, txt As TextBox Ptr)
-	Declare Sub GetDisplayMode(DiviceName As LPCWSTR, ByVal FlagIndex As Integer, ByVal Index As Integer, lst As ListControl Ptr, txt As TextBox Ptr)
 	Declare Sub EnumDisplayMonitor(txt As TextBox Ptr)
+	Declare Sub GetDisplayMode(DiviceName As LPCWSTR, ByVal FlagIndex As Integer, ByVal Index As Integer, lst As ListControl Ptr, txt As TextBox Ptr)
 	Declare Sub QueryDisplayConfigs(cob As ComboBoxEdit Ptr, lst As ListControl Ptr, txt As TextBox Ptr)
 	Declare Sub Release()
 	Declare Sub SetDisplayConfigs(cob As ComboBoxEdit Ptr, txt As TextBox Ptr)

@@ -476,7 +476,7 @@ Private Sub Monitor.EnumDisplayMonitor(txt As TextBox Ptr)
 	Release()
 	
 	txt->Clear
-	txt->AddLine "EnumDisplayMonitors: " & EnumDisplayMonitors(NULL , NULL , @MonitorEnumProc, Cast(LPARAM, @This))
+	txt->AddLine "EnumDisplayMonitors: " & EnumDisplayMonitors(NULL , NULL , @EnumDisplayMonitorProc, Cast(LPARAM, @This))
 	txt->AddLine "Monitor count: " & mtrCount + 1
 	Dim i As Integer
 	For i = 0 To mtrCount
@@ -510,7 +510,7 @@ Private Sub Monitor.ChangeDisplaySettings(DiviceName As LPCWSTR, ByVal ModeNum A
 	txt->AddLine CDSErtnWstr(rtn)
 End Sub
 
-Private Function Monitor.MonitorEnumProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
+Private Function Monitor.EnumDisplayMonitorProc(ByVal hMtr As HMONITOR , ByVal hDCMonitor As HDC , ByVal lprcMonitor As LPRECT , ByVal dwData As LPARAM) As WINBOOL
 	Dim a As Monitor Ptr = Cast(Monitor Ptr, dwData)
 	a->mtrCount += 1
 	
