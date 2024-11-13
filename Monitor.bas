@@ -274,6 +274,7 @@ End Constructor
 Private Sub Monitor.Release()
 	mtrCount = -1
 	Erase mtrMI
+	Erase mtrMIEx
 	Erase mtrHMtr
 	Erase mtrHDC
 	Erase mtrRECT
@@ -471,7 +472,7 @@ Private Sub Monitor.GetDisplayMode(DiviceName As LPCWSTR, ByVal FlagIndex As Int
 	Deallocate(tmpc)
 End Sub
 
-Private Sub Monitor.InitEnumDisplayMonitors(txt As TextBox Ptr)
+Private Sub Monitor.EnumDisplayMonitor(txt As TextBox Ptr)
 	Release()
 	
 	txt->Clear
@@ -492,6 +493,7 @@ Private Sub Monitor.InitEnumDisplayMonitors(txt As TextBox Ptr)
 		txt->AddLine "####rcWork"
 		RECT2WStr(mtrMI(i).rcWork, txt, "    ")
 		txt->AddLine "dwFlags =     " & mtrMI(i).dwFlags & IIf(mtrMI(i).dwFlags = MONITORINFOF_PRIMARY, ", This is the primary display monitor.", ", This is not the primary display monitor.")
+		txt->AddLine "szDevice =    " & mtrMIEx(i).szDevice
 	Next
 End Sub
 
@@ -516,10 +518,13 @@ Private Function Monitor.MonitorEnumProc(ByVal hMtr As HMONITOR , ByVal hDCMonit
 	ReDim Preserve a->mtrHDC(a->mtrCount)
 	ReDim Preserve a->mtrRECT(a->mtrCount)
 	ReDim Preserve a->mtrMI(a->mtrCount)
+	ReDim Preserve a->mtrMIEx(a->mtrCount)
 	a->mtrHMtr(a->mtrCount) = hMtr
 	a->mtrHDC(a->mtrCount) = hDCMonitor
 	memcpy(VarPtr(a->mtrRECT(a->mtrCount)), lprcMonitor, SizeOf(tagRECT))
 	a->mtrMI(a->mtrCount).cbSize = SizeOf(MONITORINFO)
 	GetMonitorInfo(hMtr, @(a->mtrMI(a->mtrCount)))
+	a->mtrMIEx(a->mtrCount).cbSize = SizeOf(MONITORINFOEX)
+	'GetMonitorInfo(hMtr, @(a->mtrMIEx(a->mtrCount)))
 	Return True
 End Function

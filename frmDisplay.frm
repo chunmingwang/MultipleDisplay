@@ -19,7 +19,6 @@
 	#include once "mff/ListControl.bi"
 	#include once "mff/Splitter.bi"
 	
-	#include once "win/winuser.bi"
 	#include once "Monitor.bi"
 	
 	Using My.Sys.Forms
@@ -297,7 +296,7 @@ Private Sub frmDisplayType.CommandButton_Click(ByRef Sender As Control)
 		ComboBoxEdit3.Clear
 		ListControl2.Clear
 	Case "CommandButton3"
-		mtr.InitEnumDisplayMonitors(@TextBox1)
+		mtr.EnumDisplayMonitor(@TextBox1)
 	Case "CommandButton4"
 		mtr.EnumDisplayDevice(EDSEdwFlags(ComboBoxEdit4.ItemIndex), @ComboBoxEdit3, @ListControl2, @TextBox1)
 	Case "CommandButton5"
